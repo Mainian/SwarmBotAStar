@@ -5,64 +5,77 @@ public class AStar
 {
 	private AStarMap map;
 	private ArrayList<Node> closedList;
+	private ArrayList<Node> shortestPath;
 	private ArrayList<Node> openList;
+	
+	public ArrayList<Node> GetClosedList(){return closedList;}
+	public ArrayList<Node> GetOpenList(){return openList;}
+	public ArrayList<Node> GetShortestPath(){return shortestPath;}
 	
 	public AStar(AStarMap map)
 	{
 		this.map = map;
 		closedList = new ArrayList<Node>();
 		openList = new ArrayList<Node>();
+		shortestPath = new ArrayList<Node>();
 	}
 	
-	public ArrayList<Node> calcShortestPath(int startX, int startY, int goalX, int goalY)
+	public boolean calcShortestPath(int startX, int startY, int goalX, int goalY)
 	{
-		map.setStartLocation(startX, startY);
-		map.setGoalLocation(goalX, goalY);
+		map.SetStartLocation(startX, startY);
+		map.SetGoalLocation(goalX, goalY);
 		
-		if(map.GetGoalNode().GetIsObstacle())
+		if(map.GetGoalNode().IsObstacle())
 		{
-			return null;
+			return false;
 		}
 		
 		map.GetStartNode();
 		closedList.clear();
 		openList.clear();
+		shortestPath.clear();
 		AddNodeToOpenList(map.GetStartNode());
 		
 		//while we haven't reached the goal yet
 		while(openList.size() != 0)
 		{
 			Node current = openList.get(0);
-			
-			// check to see if we are at our goal
-			if(current.equalis(map.GetGoalNode()))
-				return rebuildPath(current);
-			
 			openList.remove(current);
 			closedList.add(current);
 			
-			for(Node neighbor : map.GetNeighborList(current))
+			// check to see if we are at our goal
+			if(current.equals(map.GetGoalNode()))
 			{
+				shortestPath = rebuildPath(current);
+				return true;
+			}
+			
+			double currG = map.CalculateG(current);
+			for(Node neighbor : map.GetNeighborList(current))
+			{	
 				if(closedList.contains(neighbor))
 					continue;
 				
-				if(!neighbor.GetIsObstacle())
+				//PERFORM HOOK HERE TO DETECT OBSTACLE
+				
+				if(!neighbor.IsObstacle())
 				{
+
 					// calculate how long the path is if we choose this neighbor as the next step in the path
-					double neighborDistanceFromStart = map.GetDistanceBetweenNodes(map.GetStartNode(), current)
-						+ map.GetDistanceBetweenNodes(current, neighbor);
+					double neighborDistanceFromStart = currG + map.GetDistanceBetweenNodes(current, neighbor);
+					//double neighborDistanceFromStart = map.GetDistanceBetweenNodes(map.GetStartNode(), current)+ map.GetDistanceBetweenNodes(current, neighbor);
 					
 					if(!openList.contains(neighbor))
 					{
-						openList.add(neighbor);
 						neighbor.SetParent(current);
+						AddNodeToOpenList(neighbor);
 					}
-					else if(neighborDistanceFromStart < map.GetDistanceBetweenNodes(current, map.GetStartNode()))
+					else if(neighborDistanceFromStart < currG)
 						neighbor.SetParent(current);
 				}
 			}
 		}
-		return null;
+		return false;
 	}
 	
 	private void AddNodeToOpenList(Node node)
@@ -79,6 +92,7 @@ public class AStar
 			path.add(0,node);
 			node = node.GetParent();
 		}
+		path.add(0,node);
 		return path;
 	}
 }

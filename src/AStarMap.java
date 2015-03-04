@@ -3,13 +3,11 @@ import java.util.Comparator;
 
 public class AStarMap implements Comparator<Node>
 {
-	
 	private final double MIN_COST = 1.0;
 	private final double ALPHA = 0.5;
 	
 	private int width,height,startX=0,startY=0,goalX=0,goalY=0;
 	private ArrayList<ArrayList<Node>> map;
-	private int[][] obstacleMap = {{0}};
 	
 	public AStarMap(int width, int height)
 	{
@@ -19,7 +17,7 @@ public class AStarMap implements Comparator<Node>
 		createMap();
 	}
 	
-	void createMap()
+	private void createMap()
 	{
 		Node node;
 		map = new ArrayList<ArrayList<Node>>();
@@ -29,41 +27,57 @@ public class AStarMap implements Comparator<Node>
 			for(int y: new Range(height))
 			{
 				node = new Node(x,y);
-					if(obstacleMap[y][x] == 1)
-						node.SetIsObstacle(true);
-					map.get(x).add(node);
+				map.get(x).add(node);
 			}
 		}
 	}
 	
 	public Node GetNode(int x, int y) 
 	{ 
-		return map.get(x).get(y); 
+		if(x>=0 && x<width && y>=0 && y<height)
+			return map.get(x).get(y); 
+		else 
+			return null;
 	}
+	
 	public int GetWidth() { return width; }
 	public int GetHeight() { return height; }
 	public Node GetStartNode() { return map.get(startX).get(startY); }
 	public Node GetGoalNode() { return map.get(goalX).get(goalY); }
 	
-	public void setObstacle(int x, int y, boolean isObstacle) 
+	public void SetObstacle(int x, int y, boolean isObstacle) 
 	{ 
-		map.get(x).get(y).SetIsObstacle(isObstacle); 
+		if(x>=0 && x<width && y>=0 && y<height)
+			map.get(x).get(y).SetIsObstacle(isObstacle); 
 	}
 	
-	public void setStartLocation(int x, int y)
+	public void SetNodeGPSLocation(int x, int y, float latitude, float longitude, float altitude)
 	{
-		map.get(startX).get(startY).SetIsStart(false);
-		map.get(x).get(y).SetIsStart(true);
-		startX=x;
-		startY=y;
+		if(x>=0 && x<width && y>=0 && y<height){
+			map.get(x).get(y).SetAltitude(altitude);
+			map.get(x).get(y).SetLatitude(latitude);
+			map.get(x).get(y).SetLongitude(longitude);
+		}
 	}
 	
-	public void setGoalLocation(int x, int y)
+	public void SetStartLocation(int x, int y)
 	{
-		map.get(goalX).get(goalY).SetIsGoal(false);
-		map.get(x).get(y).SetIsGoal(true);
-		goalX=x;
-		goalY=y;
+		if(x>=0 && x<width && y>=0 && y<height){
+			map.get(startX).get(startY).SetIsStart(false);
+			map.get(x).get(y).SetIsStart(true);
+			startX=x;
+			startY=y;
+		}
+	}
+	
+	public void SetGoalLocation(int x, int y)
+	{
+		if(x>=0 && x<width && y>=0 && y<height){
+			map.get(goalX).get(goalY).SetIsGoal(false);
+			map.get(x).get(y).SetIsGoal(true);
+			goalX=x;
+			goalY=y;
+		}
 	}
 	
 	public double GetDistanceBetweenNodes(Node node1, Node node2)
@@ -74,19 +88,35 @@ public class AStarMap implements Comparator<Node>
 	
 	public double CalculateH(Node node)
 	{
-		double h = 0;
-		h = (double)(MIN_COST + Math.abs((double)node.GetX()-(double)GetGoalNode().GetX())+
-				Math.abs((double)node.GetY() - (double)GetGoalNode().GetY()));
-		
-		return h;
+		if(node.GetH() > 0)
+			return node.GetH();
+		else
+		{
+			double h = 0;
+			h = 5.0*(double)(MIN_COST + Math.abs((double)node.GetX()-(double)GetGoalNode().GetX())+
+					Math.abs((double)node.GetY() - (double)GetGoalNode().GetY()));
+			node.SetH(h);
+			return h;
+		}
 	}
 	
 	public double CalculateG(Node node)
 	{
-		double g = 0;
-		g = 1.0 + ALPHA + (node.GetG() - 1.0);
-		
-		return g;
+		if(node.GetG() > 0)
+			return node.GetG();
+		else
+		{
+			double g = 0;
+			if(node.GetParent() != null)
+			g = 1.0 + ALPHA + (CalculateG(node.GetParent()) - 1.0);
+			node.SetG(g);
+			return g;
+		}
+	}
+	
+	public double CalculateF(Node node)
+	{
+		return CalculateG(node) + CalculateH(node);
 	}
 	
     public ArrayList<Node> GetNeighborList(Node node) 
@@ -99,7 +129,24 @@ public class AStarMap implements Comparator<Node>
         for(int x = xVal-1; x <= xVal+1; x++)
         	for(int y = yVal-1; y <= yVal+1; y++)
         		if(x>=0 && y>=0 && x<width && y<height)
-        			neighborList.add(GetNode(x,y));
+        			if(!node.equals(GetNode(x,y)))
+        				neighborList.add(GetNode(x,y));
+        
+        return neighborList;
+    }
+    
+    public ArrayList<Node> GetNeighborListNoDiagonals(Node node)
+    {
+        ArrayList<Node> neighborList = new ArrayList<Node>();
+        
+        int yVal = node.GetY();
+        int xVal = node.GetX();
+        
+        for(int x = xVal-1; x <= xVal+1; x++)
+        	for(int y = yVal-1; y <= yVal+1; y++)
+        		if(x>=0 && y>=0 && x<width && y<height)
+        			if(xVal==x ^ yVal==y)
+        				neighborList.add(GetNode(x,y));
         
         return neighborList;
     }
@@ -115,11 +162,8 @@ public class AStarMap implements Comparator<Node>
 
 	@Override
 	public int compare(Node node0, Node node1) {
-		double node0TotalDistanceFromGoal = CalculateG(node0)+CalculateH(node0)+
-				+GetDistanceBetweenNodes(node0,GetStartNode());
-		
-		double node1TotalDistanceFromGoal = CalculateG(node1)+CalculateH(node1)+
-				+GetDistanceBetweenNodes(node1,GetStartNode());
+		double node0TotalDistanceFromGoal = CalculateF(node0);
+		double node1TotalDistanceFromGoal = CalculateF(node1);
 		
 		//node0 > node1 return positive
 		if(node0TotalDistanceFromGoal > node1TotalDistanceFromGoal)

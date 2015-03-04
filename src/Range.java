@@ -1,48 +1,48 @@
-
-
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-
-public class Range implements Iterable<Integer> 
-{
-	private int limit;
 	
-	public Range(int limit)
-	{
-		this.limit = limit;
-	}
 	
-	@Override
-	public Iterator<Integer> iterator() 
+	import java.util.Iterator;
+	import java.util.NoSuchElementException;
+	
+	public class Range implements Iterable<Integer> 
 	{
-		final int max = limit;
-		return new Iterator<Integer>()
+		private int limit;
+		
+		public Range(int limit)
 		{
-			private int current = 0;
-			
-			@Override
-			public boolean hasNext()
+			this.limit = limit;
+		}
+		
+		@Override
+		public Iterator<Integer> iterator() 
+		{
+			final int max = limit;
+			return new Iterator<Integer>()
 			{
-				return current < max;
-			}
-			
-			@Override
-			public Integer next()
-			{
-				if (hasNext())
+				private int current = 0;
+				
+				@Override
+				public boolean hasNext()
 				{
-					return current++;
+					return current < max;
 				}
-				else
+				
+				@Override
+				public Integer next()
 				{
-					throw new NoSuchElementException("Range reached the end");
+					if (hasNext())
+					{
+						return current++;
+					}
+					else
+					{
+						throw new NoSuchElementException("Range reached the end");
+					}
 				}
-			}
-
-			@Override
-			public void remove() {
-				throw new UnsupportedOperationException("Can't remove values from a Range");
-			}
-		};
+	
+				@Override
+				public void remove() {
+					throw new UnsupportedOperationException("Can't remove values from a Range");
+				}
+			};
+		}
 	}
-}
